@@ -22,12 +22,14 @@ from model import init_params, build_encoder, build_encoder_w2v
 #-----------------------------------------------------------------------------#
 # Specify model and dictionary locations here
 #-----------------------------------------------------------------------------#
-path_to_model = '/u/rkiros/research/semhash/models/toy.npz'
-path_to_dictionary = '/ais/gobi3/u/rkiros/bookgen/book_dictionary_large.pkl'
-path_to_word2vec = '/ais/gobi3/u/rkiros/word2vec/GoogleNews-vectors-negative300.bin'
+path_to_model = 'output_books_full/model_full_bsz_64_M2400_iter_35000.npz'
+path_to_dictionary = 'output_books_full/books.vocab'
+path_to_word2vec = '../../PATH_TO_DATA/books_txt_processed/GoogleNews-vectors-negative300.bin'
 #-----------------------------------------------------------------------------#
 
-def load_model(embed_map=None):
+def load_model(path_to_model=path_to_model, 
+               path_to_dictionary='output_books_full/books.vocab', 
+               embed_map=None):
     """
     Load all model components + apply vocab expansion
     """
