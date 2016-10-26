@@ -143,7 +143,7 @@ def build_model(tparams, options):
         neg_f_cds.append(cosine_sim(source_proj, ns_f_projs[i]))
         neg_b_cds.append(cosine_sim(source_proj, ns_b_projs[i]))
 
-    Deltas_f = [pos_f_cd - neg_b_cd for neg_f_cd in neg_f_cds]
+    Deltas_f = [pos_f_cd - neg_f_cd for neg_f_cd in neg_f_cds]
     Deltas_b = [pos_b_cd - neg_b_cd for neg_b_cd in neg_b_cds]
 
     exp_deltas_f = [tensor.exp(-options['gamma'] * d) for d in Deltas_f]

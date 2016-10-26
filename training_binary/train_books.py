@@ -4,10 +4,9 @@ import os
 import re
 import train
 
-# Path to bookd data
-data_path = '/data2/akeller/skip_thoughts_neon/data/books_txt_processed_full/'
+# Path to book data
+data_path = '/home/users/andy/manulife/books_txt_processed/'
 dict_path = 'output_books_full/books.vocab'
-
 save_path = 'output_books_full/model_binary_iter_{}.npz'
 
 def clean_string(string):
