@@ -28,7 +28,7 @@ def trainer(X,
             dim_word=620, # word vector dimensionality
             dim=2400, # the number of GRU units
             encoder='gru',
-            num_neg=64,
+            num_neg=4,
             gamma=1.0,
             max_epochs=5,
             dispFreq=1,
@@ -90,11 +90,12 @@ def trainer(X,
 
     tparams = init_tparams(params)
 
-    trng, x, x_mask, p, p_mask, ns_list, ns_masks, \
+    trng, x, x_mask, p_f, p_f_mask, p_b, p_b_mask, \
+          ns_list, ns_masks, \
           opt_ret, \
           cost = \
           build_model(tparams, model_options)
-    inps = [x, x_mask, p, p_mask] + ns_list + ns_masks
+    inps = [x, x_mask, p_f, p_f_mask, p_b, p_b_mask] + ns_list + ns_masks
 
     # before any regularizer
     print 'Building f_log_probs...',
@@ -139,10 +140,6 @@ def trainer(X,
 
     print 'Optimization'
 
-
-##################################################
-# FIX
-
     # Each sentence in the minibatch have same length (for encoder)
     trainX = homogeneous_data.grouper(X)
     train_iter = homogeneous_data.HomogeneousData(trainX, batch_size=batch_size, num_neg=num_neg, maxlen=maxlen_w)
@@ -154,13 +151,13 @@ def trainer(X,
 
         print 'Epoch ', eidx
 
-        for x, p1, p2, ns in train_iter:
+        for x, p_f, p_b, ns in train_iter:
             n_samples += len(x)
             uidx += 1
 
             # ns input is list of num_neg negative sentences, 
             # output ns is list of num_neg (batchsize, neg_len) negative sentences 
-            x, x_mask, p1, p1_mask, p2, p2_mask, ns_list, ns_masks = homogeneous_data.prepare_data(x, p1, p2, ns, 
+            x, x_mask, p_f, p_f_mask, p_b, p_b_mask, ns_list, ns_masks = homogeneous_data.prepare_data(x, p_f, p_b, ns, 
                                                                                 worddict, maxlen=maxlen_w, n_words=n_words)
 
             if x == None:
@@ -169,12 +166,8 @@ def trainer(X,
                 continue
 
             ud_start = time.time()
-            args = [x, x_mask, p1, p1_mask] + ns_list + ns_masks
-            cost_p1 = f_grad_shared(*args)
-            f_update(lrate)
-
-            args = [x, x_mask, p2, p2_mask] + ns_list + ns_masks
-            cost_p2 = f_grad_shared(*args)
+            args = [x, x_mask, p_f, p_f_mask, p_b, p_b_mask] + ns_list + ns_masks
+            cost = f_grad_shared(*args)
             f_update(lrate)
 
             ud = time.time() - ud_start
@@ -189,7 +182,7 @@ def trainer(X,
             if numpy.mod(uidx, saveFreq) == 0:
                 print 'Saving...',
 
-		saveto_idx = saveto.format(uidx)
+                saveto_idx = saveto.format(uidx)
 
                 params = unzip(tparams)
                 numpy.savez(saveto_idx, history_errs=[], **params)

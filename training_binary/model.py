@@ -20,19 +20,20 @@ def init_params(options):
     # Word embedding
     params['Wemb'] = norm_weight(options['n_words'], options['dim_word'])
 
-    # Encoder
-    params = get_layer(options['encoder'])[0](options, params, prefix='encoder',
+    # Encoder (behind)
+    params = get_layer(options['encoder'])[0](options, params, prefix='encoder_b',
                                               nin=options['dim_word'], dim=options['dim'])
 
-    return params
+    # Encoder (current)
+    params = get_layer(options['encoder'])[0](options, params, prefix='encoder_c',
+                                              nin=options['dim_word'], dim=options['dim'])
 
-# def cosine_sim(a, b):
-#     """
-#     Return cosine similarity measure of two vectors a and b
-#     """
-#     num = tensor.sum(a * b)
-#     denom = tensor.sqrt(tensor.sum(a ** 2) * tensor.sum(b ** 2))
-#     return num / denom
+    # Encoder (forward)
+    params = get_layer(options['encoder'])[0](options, params, prefix='encoder_f',
+                                              nin=options['dim_word'], dim=options['dim'])
+
+
+    return params
 
 def _squared_magnitude(x):
     return tensor.sqr(x).sum()
@@ -54,14 +55,18 @@ def build_model(tparams, options):
 
     # description string: #words x #samples
     # x: current sentence
-    # p: pos sentence 
+    # p_n: pos sentence next
+    # p_b: pos sentence behind
     # ns: negative sentences
     x = tensor.matrix('x', dtype='int64')
     x_mask = tensor.matrix('x_mask', dtype='float32')
 
-    p = tensor.matrix('p', dtype='int64')
-    p_mask = tensor.matrix('p_mask', dtype='float32')
+    p_f = tensor.matrix('p_f', dtype='int64')
+    p_f_mask = tensor.matrix('p_f_mask', dtype='float32')
     
+    p_b = tensor.matrix('p_b', dtype='int64')
+    p_b_mask = tensor.matrix('p_b_mask', dtype='float32')
+
     ns_list = []
     ns_masks = []
     for i in range(options['num_neg']):
@@ -71,7 +76,9 @@ def build_model(tparams, options):
         ns_masks.append(n_mask)
 
     n_timesteps = x.shape[0]
-    n_timesteps_p = p.shape[0]
+    n_timesteps_p_b = p_b.shape[0]
+    n_timesteps_p_f = p_f.shape[0]
+
     n_timesteps_ns = [z.shape[0] for z in ns_list]
     n_samples = x.shape[1]
 
@@ -80,49 +87,74 @@ def build_model(tparams, options):
 
     # Encoded source
     source_proj = get_layer(options['encoder'])[1](tparams, source_emb, None, options,
-                                            prefix='encoder',
+                                            prefix='encoder_c',
                                             mask=x_mask)
     source_proj = source_proj[0][-1]
     
-
-     # Word embedding (Positive sentence)
-    pos_emb = tparams['Wemb'][p.flatten()].reshape([n_timesteps_p, n_samples, options['dim_word']])
+     # Word embedding (Positive sentence behind)
+    pos_b_emb = tparams['Wemb'][p_b.flatten()].reshape([n_timesteps_p_b, n_samples, options['dim_word']])
 
     # Encoded positive sentence
-    pos_proj = get_layer(options['encoder'])[1](tparams, pos_emb, None, options,
-                                            prefix='encoder',
-                                            mask=p_mask)
-    pos_proj = pos_proj[0][-1]
+    pos_b_proj = get_layer(options['encoder'])[1](tparams, pos_b_emb, None, options,
+                                            prefix='encoder_b',
+                                            mask=p_b_mask)
+    pos_b_proj = pos_b_proj[0][-1]
+
+    # Word embedding (Positive sentence forward)
+    pos_f_emb = tparams['Wemb'][p_f.flatten()].reshape([n_timesteps_p_f, n_samples, options['dim_word']])
+
+    # Encoded forward sentence
+    pos_f_proj = get_layer(options['encoder'])[1](tparams, pos_f_emb, None, options,
+                                            prefix='encoder_f',
+                                            mask=p_f_mask)
+    pos_f_proj = pos_f_proj[0][-1]
 
 
-    ns_projs = []
+    # Compute encodings of negatives using both foward & backward encoders
+    ns_f_projs = []
+    ns_b_projs = []
     for i in range(options['num_neg']):
         neg_emb = tparams['Wemb'][ns_list[i].flatten()].reshape([n_timesteps_ns[i], n_samples, options['dim_word']])
 
-        # Encoded negative sentences
-        neg_proj = get_layer(options['encoder'])[1](tparams, neg_emb, None, options,
-                                            prefix='encoder',
+        # Encoded negative sentences w/ FORWARD encoder
+        neg_f_proj = get_layer(options['encoder'])[1](tparams, neg_emb, None, options,
+                                            prefix='encoder_f',
                                             mask=ns_masks[i])
-        neg_proj = neg_proj[0][-1]
+        neg_f_proj = neg_f_proj[0][-1]
 
-        ns_projs.append(neg_proj)
+        ns_f_projs.append(neg_f_proj)
+
+        # Encoded negative sentences w/ BACKWARDS encoder
+        neg_b_proj = get_layer(options['encoder'])[1](tparams, neg_emb, None, options,
+                                            prefix='encoder_b',
+                                            mask=ns_masks[i])
+        neg_b_proj = neg_b_proj[0][-1]
+
+        ns_b_projs.append(neg_b_proj)
 
 
     # compute cosine similarities of pos & neg with source
-    pos_cd = cosine_sim(source_proj, pos_proj)
-    neg_cds = []
+    pos_f_cd = cosine_sim(source_proj, pos_f_proj)
+    pos_b_cd = cosine_sim(source_proj, pos_b_proj)
 
+    neg_f_cds = []
+    neg_b_cds = []
     for i in range(options['num_neg']):
-        neg_cds.append(cosine_sim(source_proj, ns_projs[i]))
+        neg_f_cds.append(cosine_sim(source_proj, ns_f_projs[i]))
+        neg_b_cds.append(cosine_sim(source_proj, ns_b_projs[i]))
 
+    Deltas_f = [pos_f_cd - neg_b_cd for neg_f_cd in neg_f_cds]
+    Deltas_b = [pos_b_cd - neg_b_cd for neg_b_cd in neg_b_cds]
 
-    Deltas = [pos_cd - neg_cd for neg_cd in neg_cds]
+    exp_deltas_f = [tensor.exp(-options['gamma'] * d) for d in Deltas_f]
+    exp_deltas_b = [tensor.exp(-options['gamma'] * d) for d in Deltas_b]
 
-    exp_deltas = [tensor.exp(-options['gamma'] * d) for d in Deltas]
+    cost_f = tensor.log(1.0 + sum(exp_deltas_f))
+    cost_b = tensor.log(1.0 + sum(exp_deltas_b))
 
-    cost = tensor.log(1.0 + sum(exp_deltas))
+    cost = cost_f + cost_b
 
-    return trng, x, x_mask, p, p_mask, ns_list, ns_masks, opt_ret, cost
+    return trng, x, x_mask, p_f, p_f_mask, p_b, p_b_mask, ns_list, ns_masks, opt_ret, cost
 
 def build_encoder(tparams, options):
     """
