@@ -60,6 +60,8 @@ def build_model(tparams, options):
     z = tensor.matrix('z', dtype='int64')
     z_mask = tensor.matrix('z_mask', dtype='float32')
 
+    KL_w = tensor.scalar('KL_w', dtype='float32')
+
     n_timesteps = x.shape[0]
     n_timesteps_f = y.shape[0]
     n_timesteps_b = z.shape[0]
@@ -127,12 +129,12 @@ def build_model(tparams, options):
     costb = costb.sum()
 
     # Compute KL Divergence between VAE encoder and gaussian prior, add to cost
-    KLD = 0.5 * tensor.sum(1 + log_sigma - mu**2 - tensor.exp(log_sigma), axis=1)
+    KLD = -0.5 * tensor.sum(1 + log_sigma - mu**2 - tensor.exp(log_sigma), axis=1)
 
     # total cost
-    cost = tensor.mean(costf + costb + KLD)
+    cost = costf + costb + KL_w * tensor.mean(KLD)
 
-    return trng, x, x_mask, y, y_mask, z, z_mask, opt_ret, cost
+    return trng, x, x_mask, y, y_mask, z, z_mask, KL_w, KLD, opt_ret, cost
 
 def build_encoder(tparams, options):
     """
