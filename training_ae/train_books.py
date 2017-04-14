@@ -8,7 +8,7 @@ import train
 data_path = '../skip_data/books_full/'
 dict_path = 'output_books_full/books.vocab'
 save_path = 'output_books_full/model_ae_full_bsz_64_iter_{}.npz'
-reload_path = 'output_books_full/model_ae_full_bsz_64_iter_313000.npz'
+reload_path = 'output_books_full/model_ae_full_bsz_64_iter_317800.npz'
 
 def clean_string(string):
     string = re.sub(r"[^A-Za-z(),!?\'\`]", " ", string)
@@ -67,4 +67,4 @@ if __name__ == "__main__":
         worddict = vocab.load_dictionary(dict_path)
    
     print "Beginning Training..." 
-    train.trainer(train_sent, batch_size=64,  reload_=True, reload_path=reload_path, dictionary=dict_path, saveto=save_path, saveFreq=100)  
+    train.trainer(train_sent, batch_size=64,  reload_=True, reload_path=reload_path, dictionary=dict_path, saveto=save_path, saveFreq=10000)  
