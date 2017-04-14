@@ -18,6 +18,7 @@ import homogeneous_data
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
+import numpy as np
 from utils import *
 from layers import get_layer, param_init_fflayer, fflayer, param_init_gru, gru_layer
 from optim import adam
@@ -107,15 +108,19 @@ def trainer(X,
     tparams = init_tparams(params)
 
     trng, x, x_mask, y, y_mask, z, z_mask, \
+	  KL_w, KL_val, \
           opt_ret, \
           cost = \
           build_model(tparams, model_options)
-    inps = [x, x_mask, y, y_mask, z, z_mask]
+    inps = [x, x_mask, y, y_mask, z, z_mask, KL_w]
 
     # before any regularizer
     print 'Building f_log_probs...',
     f_log_probs = theano.function(inps, cost, profile=False)
     print 'Done'
+
+    print 'Building f_KL_val'
+    f_KL_val = theano.function([x, x_mask], KL_val, profile=False)
 
     # weight decay, if applicable
     if decay_c > 0.:
@@ -165,7 +170,7 @@ def trainer(X,
         uidx = 0
     else:
         uidx = reload_idx
-    lrate = 0.01
+    lrate = 0.005
     for eidx in xrange(max_epochs):
         n_samples = 0
 
@@ -182,8 +187,11 @@ def trainer(X,
                 uidx -= 1
                 continue
 
+            KL_w = ((np.tanh(1.0/2000.0*(uidx - 5000.0)) + 1.0) / 2.0).astype(np.float32)
+
             ud_start = time.time()
-            cost = f_grad_shared(x, x_mask, y, y_mask, z, z_mask)
+            cost = f_grad_shared(x, x_mask, y, y_mask, z, z_mask, KL_w)
+	    KL_val = f_KL_val(x, x_mask)
             f_update(lrate)
             ud = time.time() - ud_start
 
@@ -192,7 +200,7 @@ def trainer(X,
                 return 1., 1., 1.
 
             if numpy.mod(uidx, dispFreq) == 0:
-                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'UD ', ud
+                print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost, 'UD ', ud, 'KL_val', KL_val.mean(), 'KL_w', KL_w
 
             if numpy.mod(uidx, saveFreq) == 0:
                 print 'Saving...',

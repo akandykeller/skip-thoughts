@@ -67,4 +67,4 @@ if __name__ == "__main__":
         worddict = vocab.load_dictionary(dict_path)
    
     print "Beginning Training..." 
-    train.trainer(train_sent, batch_size=64,  reload_=True, reload_path=reload_path, dictionary=dict_path, saveto=save_path, save_freq=100)  
+    train.trainer(train_sent, batch_size=64,  reload_=True, reload_path=reload_path, dictionary=dict_path, saveto=save_path, saveFreq=100)  

@@ -210,7 +210,7 @@ def trainer(X,
                         cur_time = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
                         rsf.write('\n \n {}'.format(cur_time))
                         rsf.write('\n{}, {}, {}, {}'.format(uidx, pr,se,mse))
-                   print "Done" 
+                    print "Done" 
 
         print 'Seen %d samples'%n_samples
 

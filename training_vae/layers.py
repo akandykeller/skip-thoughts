@@ -61,8 +61,8 @@ def param_init_vae(options, params, prefix='vae', nhid=None, nlatent=None, ndim=
         ndim = options['dim']
 
     # VAE encoder part
-    params[_p(prefix,'W_xh')] = norm_weight(ndim, nhid, ortho=ortho)
-    params[_p(prefix,'b_xh')] = numpy.zeros((nhid,)).astype('float32')
+    # params[_p(prefix,'W_xh')] = norm_weight(ndim, nhid, ortho=ortho)
+    # params[_p(prefix,'b_xh')] = numpy.zeros((nhid,)).astype('float32')
 
     params[_p(prefix,'W_hmu')] = norm_weight(nhid, nlatent, ortho=ortho)
     params[_p(prefix,'b_hmu')] = numpy.zeros((nlatent,)).astype('float32')
@@ -73,8 +73,8 @@ def param_init_vae(options, params, prefix='vae', nhid=None, nlatent=None, ndim=
     params[_p(prefix,'W_zh')] = norm_weight(nlatent, nhid, ortho=ortho)
     params[_p(prefix,'b_zh')] = numpy.zeros((nhid,)).astype('float32')
 
-    params[_p(prefix,'W_hx')] = norm_weight(nhid, ndim, ortho=ortho)
-    params[_p(prefix,'b_hx')] = numpy.zeros((ndim,)).astype('float32')
+    # params[_p(prefix,'W_hx')] = norm_weight(nhid, ndim, ortho=ortho)
+    # params[_p(prefix,'b_hx')] = numpy.zeros((ndim,)).astype('float32')
 
     return params
 
@@ -85,10 +85,10 @@ def vae_layer(tparams, state_below, options, prefix='vae', **kwargs):
     seed = 42
 
     # Encode 
-    h_encoder = relu(tensor.dot(state_below, tparams[_p(prefix, 'W_xh')]) + tparams[_p(prefix, 'b_xh')])
+    # h_encoder = relu(tensor.dot(state_below, tparams[_p(prefix, 'W_xh')]) + tparams[_p(prefix, 'b_xh')])
 
-    mu = tensor.dot(h_encoder, tparams[_p(prefix, 'W_hmu')]) + tparams[_p(prefix, 'b_hmu')]
-    log_sigma = tensor.dot(h_encoder, tparams[_p(prefix, 'W_hsigma')]) + tparams[_p(prefix, 'b_hsigma')]
+    mu = tensor.dot(state_below, tparams[_p(prefix, 'W_hmu')]) + tparams[_p(prefix, 'b_hmu')]
+    log_sigma = tensor.dot(state_below, tparams[_p(prefix, 'W_hsigma')]) + tparams[_p(prefix, 'b_hsigma')]
     
     if "gpu" in theano.config.device:
         srng = theano.sandbox.cuda.rng_curand.CURAND_RandomStreams(seed=seed)
@@ -101,12 +101,12 @@ def vae_layer(tparams, state_below, options, prefix='vae', **kwargs):
     z = mu + tensor.exp(0.5 * log_sigma) * eps
 
     # Decode 
-    h_decoder = relu(tensor.dot(z, tparams[_p(prefix, 'W_zh')]) + tparams[_p(prefix, 'b_zh')])
+    h_decoder = tensor.tanh(tensor.dot(z, tparams[_p(prefix, 'W_zh')]) + tparams[_p(prefix, 'b_zh')])
 
-    h_out = tensor.dot(h_decoder, tparams[_p(prefix, 'W_hx')]) + tparams[_p(prefix, 'b_hx')]
+    # h_out = tensor.dot(h_decoder, tparams[_p(prefix, 'W_hx')]) + tparams[_p(prefix, 'b_hx')]
 
     # Returned output is same shape as RNN decoder hidden state, used to initalize decoders 
-    return h_out, mu, log_sigma
+    return h_decoder, mu, log_sigma
 
 
 # GRU layer

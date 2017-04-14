@@ -76,4 +76,4 @@ def main(data_path, dict_path, save_path, batch_size, reload_, reload_path):
         worddict = vocab.load_dictionary(dict_path)
    
     print "Beginning Training..." 
-    train.trainer(train_sent, batch_size=batch_size,  reload_=reload_, dictionary=dict_path, saveto=save_path, reload_path=reload_path, save_freq=100)  
+    train.trainer(train_sent, batch_size=batch_size,  reload_=reload_, dictionary=dict_path, saveto=save_path, reload_path=reload_path, saveFreq=100)  
