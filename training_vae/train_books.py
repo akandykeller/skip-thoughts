@@ -11,12 +11,12 @@ ex = Experiment('skip-thought-vae')
 @ex.config
 def config():
     # Path to book data
-    data_path = '../../skip_thoughts_neon/data/books_sampled_740/' #'../books_in_sentences/'
-    dict_path = 'output_books_740/books.vocab'
-    save_path = 'output_books_740/model_740_VAE_bsz_64_M2400_iter_{}.npz'
-    reload_path =  'output_books_full/model_740_bsz_64_M2400_iter_12312312312312.npz'
-    reload_ = False
-    batch_size = 64
+    data_path = '../skip_data/books_full/'
+    dict_path = 'output_books_full/books.vocab'
+    save_path = 'output_books_full/model_full_VAE_bsz_256_M2400_iter_{}.npz'
+    reload_path =  'output_books_full/model_full_VAE_bsz_256_M2400_iter_145000.npz'
+    reload_ = True
+    batch_size = 256
 
 
 def clean_string(string):
@@ -76,4 +76,4 @@ def main(data_path, dict_path, save_path, batch_size, reload_, reload_path):
         worddict = vocab.load_dictionary(dict_path)
    
     print "Beginning Training..." 
-    train.trainer(train_sent, batch_size=batch_size,  reload_=reload_, dictionary=dict_path, saveto=save_path, reload_path=reload_path)  
+    train.trainer(train_sent, batch_size=batch_size,  reload_=reload_, dictionary=dict_path, saveto=save_path, reload_path=reload_path, save_freq=100)  

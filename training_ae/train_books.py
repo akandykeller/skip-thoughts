@@ -5,10 +5,10 @@ import re
 import train
 
 # Path to bookd data
-data_path = '../../manulife/books_txt_processed/'
+data_path = '../skip_data/books_full/'
 dict_path = 'output_books_full/books.vocab'
-
-save_path = 'output_books_full/model_full_ae_bsz_512_iter_{}.npz'
+save_path = 'output_books_full/model_ae_full_bsz_64_iter_{}.npz'
+reload_path = 'output_books_full/model_ae_full_bsz_64_iter_313000.npz'
 
 def clean_string(string):
     string = re.sub(r"[^A-Za-z(),!?\'\`]", " ", string)
@@ -67,4 +67,4 @@ if __name__ == "__main__":
         worddict = vocab.load_dictionary(dict_path)
    
     print "Beginning Training..." 
-    train.trainer(train_sent, batch_size=512,  reload_=False, dictionary=dict_path, saveto=save_path)  
+    train.trainer(train_sent, batch_size=64,  reload_=True, reload_path=reload_path, dictionary=dict_path, saveto=save_path, save_freq=100)  

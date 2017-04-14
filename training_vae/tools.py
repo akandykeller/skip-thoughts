@@ -22,9 +22,9 @@ from model import init_params, build_encoder, build_encoder_w2v
 #-----------------------------------------------------------------------------#
 # Specify model and dictionary locations here
 #-----------------------------------------------------------------------------#
-path_to_model = 'output_books_full/model_full_bsz_64_M2400_iter_35000.npz'
+path_to_model = 'output_books_full/model_full_VAE_bsz_256_M2400_iter_145000.npz'
 path_to_dictionary = 'output_books_full/books.vocab'
-path_to_word2vec = '../../PATH_TO_DATA/books_txt_processed/GoogleNews-vectors-negative300.bin'
+path_to_word2vec = '../skip_data/books_full/GoogleNews-vectors-negative300.bin'
 #-----------------------------------------------------------------------------#
 
 def load_model(path_to_model=path_to_model, 

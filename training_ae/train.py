@@ -45,9 +45,10 @@ def trainer(X,
             batch_size = 512,
             saveto='/u/rkiros/research/semhash/models/toy.npz',
             dictionary='/ais/gobi3/u/rkiros/bookgen/book_dictionary_large.pkl',
-            saveFreq=500,
+            saveFreq=5000,
             reload_=False,
-            SICK_eval=True):
+            reload_path='output_books_full/model_ae_full_bsz_64_iter_313000.npz',
+	    SICK_eval=True):
 
     # Model options
     model_options = {}
@@ -67,14 +68,17 @@ def trainer(X,
     model_options['dictionary'] = dictionary
     model_options['saveFreq'] = saveFreq
     model_options['reload_'] = reload_
+    model_options['reload_path'] = reload_path   
 
     print model_options
 
     # reload options
-    if reload_ and os.path.exists(saveto):
-        print 'reloading...' + saveto
-        with open('%s.pkl'%saveto, 'rb') as f:
+    if reload_ and os.path.exists(reload_path):
+        print 'reloading...' + reload_path
+        with open('%s.pkl'%reload_path, 'rb') as f:
             models_options = pkl.load(f)
+
+	reload_idx = int(reload_path.split('_')[-1].split('.')[0])
 
     # load dictionary
     print 'Loading dictionary...'
@@ -90,8 +94,8 @@ def trainer(X,
     print 'Building model'
     params = init_params(model_options)
     # reload parameters
-    if reload_ and os.path.exists(saveto):
-        params = load_params(saveto, params)
+    if reload_ and os.path.exists(reload_path):
+        params = load_params(reload_path, params)
 
     tparams = init_tparams(params)
 
@@ -148,7 +152,10 @@ def trainer(X,
     trainX = homogeneous_data.grouper(X)
     train_iter = homogeneous_data.HomogeneousData(trainX, batch_size=batch_size, maxlen=maxlen_w)
 
-    uidx = 0
+    if not reload_:
+    	uidx = 0
+    else:
+        uidx = reload_idx
     lrate = 0.01
     for eidx in xrange(max_epochs):
         n_samples = 0
@@ -190,12 +197,15 @@ def trainer(X,
 
                 if SICK_eval:
                     print "Evaluating SICK Test performance"
-                    model = tools.load_model(path_to_model=saveto_iternum, embed_map=embed_map)
+                    embed_map = tools.load_googlenews_vectors()
+		    model = tools.load_model(path_to_model=saveto_iternum, embed_map=embed_map)
                     yhat, pr, sr, mse = eval_sick.evaluate(model, evaltest=True)
                     
+		    del(model)
+                    del(embed_map) 
                     print pr, sr, mse
 
-                    res_save_file = saveto.split('.')[0] + '_SICK_EVAL.txt'
+                    res_save_file = saveto.format('ALL').split('.')[0] + '_SICK_EVAL.txt'
                     with open(res_save_file, 'a') as rsf:
                         cur_time = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
                         rsf.write('\n \n {}'.format(cur_time))
