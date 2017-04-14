@@ -48,7 +48,7 @@ def trainer(X,
             saveFreq=5000,
             reload_=False,
             reload_path='output_books_full/model_ae_full_bsz_64_iter_313000.npz',
-	    SICK_eval=True):
+	    SICK_eval=False):
 
     # Model options
     model_options = {}

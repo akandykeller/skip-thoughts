@@ -52,7 +52,7 @@ def trainer(X,
             dictionary='/ais/gobi3/u/rkiros/bookgen/book_dictionary_large.pkl',
             saveFreq=5000,
             reload_=False,
-            SICK_eval=True):
+            SICK_eval=False):
 
     # Model options
     model_options = {}

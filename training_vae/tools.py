@@ -13,7 +13,8 @@ import nltk
 from collections import OrderedDict, defaultdict
 from nltk.tokenize import word_tokenize
 from scipy.linalg import norm
-from gensim.models import Word2Vec as word2vec
+# from gensim.models import Word2Vec as word2vec
+from gensim.models.keyedvectors import KeyedVectors
 from sklearn.linear_model import LinearRegression
 
 from utils import load_params, init_tparams
@@ -155,7 +156,7 @@ def load_googlenews_vectors():
     """
     load the word2vec GoogleNews vectors
     """
-    embed_map = word2vec.load_word2vec_format(path_to_word2vec, binary=True)
+    embed_map = KeyedVectors.load_word2vec_format(path_to_word2vec, binary=True)
     return embed_map
 
 def lookup_table(options, embed_map, worddict, word_idict, f_emb, use_norm=False):

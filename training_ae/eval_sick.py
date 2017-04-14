@@ -9,7 +9,7 @@ from scipy.stats import spearmanr
 from sklearn.utils import shuffle
 
 import sys
-sys.path.append('/home/users/andy/skip-thoughts/training')
+# sys.path.append('/home/users/andy/skip-thoughts/training')
 import tools
 
 from keras.models import Sequential
@@ -17,7 +17,7 @@ from keras.layers.core import Dense, Activation
 from keras.optimizers import Adam
 
 
-def evaluate(model, seed=1234, evaltest=False):
+def evaluate(model, seed=1234, evaltest=True):
     """
     Run experiment
     """
@@ -41,41 +41,43 @@ def evaluate(model, seed=1234, evaltest=False):
     trainY = encode_labels(scores[0])
     devY = encode_labels(scores[1])
 
-    print 'Compiling model...'
-    lrmodel = prepare_model(ninputs=trainF.shape[1])
+    with tf.device('/cpu:0'):
+        print 'Compiling model...'
+        lrmodel = prepare_model(ninputs=trainF.shape[1])
 
-    print 'Training...'
-    bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, scores[1])
+        print 'Training...'
+        bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, scores[1])
 
-    if evaltest:
-        print 'Computing test skipthoughts...'
-        testA = tools.encode(model, test[0], verbose=False, use_eos=True)
-        testB = tools.encode(model, test[1], verbose=False, use_eos=True)
+        if evaltest:
+            print 'Computing test skipthoughts...'
+            testA = tools.encode(model, test[0], verbose=False, use_eos=True)
+            testB = tools.encode(model, test[1], verbose=False, use_eos=True)
 
-        print 'Computing feature combinations...'
-        testF = np.c_[np.abs(testA - testB), testA * testB]
+            print 'Computing feature combinations...'
+            testF = np.c_[np.abs(testA - testB), testA * testB]
 
-        print 'Evaluating...'
-        r = np.arange(1,6)
-        yhat = np.dot(bestlrmodel.predict_proba(testF, verbose=2), r)
-        pr = pearsonr(yhat, scores[2])[0]
-        sr = spearmanr(yhat, scores[2])[0]
-        se = mse(yhat, scores[2])
-        print 'Test Pearson: ' + str(pr)
-        print 'Test Spearman: ' + str(sr)
-        print 'Test MSE: ' + str(se)
+            print 'Evaluating...'
+            r = np.arange(1,6)
+            yhat = np.dot(bestlrmodel.predict_proba(testF, verbose=2), r)
+            pr = pearsonr(yhat, scores[2])[0]
+            sr = spearmanr(yhat, scores[2])[0]
+            se = mse(yhat, scores[2])
+            print 'Test Pearson: ' + str(pr)
+            print 'Test Spearman: ' + str(sr)
+            print 'Test MSE: ' + str(se)
 
-        return yhat, pr, sr, se
+            return yhat, pr, sr, se
 
 
 def prepare_model(ninputs=9600, nclass=5):
     """
     Set up and compile the model architecture (Logistic regression)
     """
-    lrmodel = Sequential()
-    lrmodel.add(Dense(nclass, input_shape=(ninputs,)))
-    lrmodel.add(Activation('softmax'))
-    lrmodel.compile(loss='categorical_crossentropy', optimizer='adam')
+    with tf.device('/cpu:0'):
+        lrmodel = Sequential()
+        lrmodel.add(Dense(nclass, input_shape=(ninputs,)))
+        lrmodel.add(Activation('softmax'))
+        lrmodel.compile(loss='categorical_crossentropy', optimizer='adam')
     return lrmodel
 
 
@@ -86,20 +88,21 @@ def train_model(lrmodel, X, Y, devX, devY, devscores):
     done = False
     best = -1.0
     r = np.arange(1,6)
-    
-    while not done:
-        # Every 100 epochs, check Pearson on development set
-        lrmodel.fit(X, Y, verbose=2, shuffle=False, validation_data=(devX, devY))
-        yhat = np.dot(lrmodel.predict_proba(devX, verbose=2), r)
-        score = pearsonr(yhat, devscores)[0]
-        if score > best:
-            print score
-            best = score
-            bestlrmodel = copy.deepcopy(lrmodel)
-        else:
-            done = True
+     
+    with tf.device('/cpu:0'):
+        while not done:
+            # Every 100 epochs, check Pearson on development set
+            lrmodel.fit(X, Y, verbose=2, shuffle=False, validation_data=(devX, devY))
+            yhat = np.dot(lrmodel.predict_proba(devX, verbose=2), r)
+            score = pearsonr(yhat, devscores)[0]
+            if score > best:
+                print score
+                best = score
+                bestlrmodel = copy.deepcopy(lrmodel)
+            else:
+                done = True
 
-    yhat = np.dot(bestlrmodel.predict_proba(devX, verbose=2), r)
+        yhat = np.dot(bestlrmodel.predict_proba(devX, verbose=2), r)
     score = pearsonr(yhat, devscores)[0]
     print 'Dev Pearson: ' + str(score)
     return bestlrmodel
@@ -119,7 +122,7 @@ def encode_labels(labels, nclass=5):
     return Y
 
 
-def load_data(loc='../../manulife/data/'):
+def load_data(loc='../skip_data/sick_data/'):
     """
     Load the SICK semantic-relatedness dataset
     """
